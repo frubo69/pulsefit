@@ -245,7 +245,7 @@ html.full .scr { position: static; overflow: visible; }
       '<button class="rb pri" data-start="A">Start condition A · scrolling page</button>' +
       '<button class="rb pri" data-start="B">Start condition B · task cards</button>' +
       '<button class="rb" data-log>Log · ' + LOG.length + ' tasks</button>' +
-      '<p class="hint">Hold the PulseFit logo for 1 second to open the researcher panel.</p></div>';
+      '<p class="hint">Back returns to this screen. Researcher panel: hold the PulseFit logo for 1 second or tap it three times.</p></div>';
   }
 
   // ---- State ----
@@ -261,16 +261,17 @@ html.full .scr { position: static; overflow: visible; }
   }
 
   var saved = load('pf_state', {});
-  var S = { pid: saved.pid || '', cond: saved.cond || null, running: false, t0: 0, paused: 0, taps: 0, scrolls: 0, frozen: 0 };
+  var S = { pid: saved.pid || '', cond: null, running: false, t0: 0, paused: 0, taps: 0, scrolls: 0, frozen: 0 };
   var LOG = load('pf_log', []);
   var P = { open: false, at: 0 };
   var openTopic = null;
 
-  function persist() { store('pf_state', { pid: S.pid, cond: S.cond }); }
+  function persist() { store('pf_state', { pid: S.pid }); }
 
+  // next ID after the highest one with saved tasks: trying the screens does not use up IDs
   function nextPid() {
     var n = 0;
-    LOG.concat([{ pid: S.pid }]).forEach(function (r) {
+    LOG.forEach(function (r) {
       var m = /^P(\d+)$/i.exec(r.pid || '');
       if (m) n = Math.max(n, +m[1]);
     });
@@ -311,11 +312,19 @@ html.full .scr { position: static; overflow: visible; }
       var inp = document.getElementById('pid');
       S.pid = (inp.value || '').trim().toUpperCase() || nextPid();
       S.cond = el.getAttribute('data-start');
+      history.pushState(null, '', '?c=' + S.cond.toLowerCase()); // Back returns to this setup screen
       persist(); render(); startTask();
     } else if (el.hasAttribute('data-log')) openPanel(Date.now());
   });
 
+  // the address decides the screen: no ?c = setup, ?c=a / ?c=b = that condition
+  function condFromUrl() {
+    var c = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
+    return c === 'A' || c === 'B' ? c : null;
+  }
   window.addEventListener('popstate', function (e) {
+    var c = condFromUrl();
+    if (c !== S.cond) { S.cond = c; S.running = false; closePanel(); render(); return; }
     if (S.cond !== 'B') return;
     var d = e.state && e.state.d;
     if (d) openDetail(d, false);
@@ -357,16 +366,31 @@ html.full .scr { position: static; overflow: visible; }
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   }
 
-  // ---- Researcher panel: hold the logo for ~1 s ----
-  var holdTimer = null;
-  logo.addEventListener('pointerdown', function () {
+  // ---- Researcher panel: hold the logo for ~1 s, or tap it three times ----
+  // Only a real release or a drag cancels the hold: a system touchcancel must not eat it.
+  var holdTimer = null, holdX = 0, holdY = 0, logoTaps = [];
+  function holdStart(x, y) {
     var at = Date.now();
+    holdX = x; holdY = y;
     clearTimeout(holdTimer);
     holdTimer = setTimeout(function () { holdTimer = null; openPanel(at); }, 900);
-  });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
-    logo.addEventListener(ev, function () { clearTimeout(holdTimer); });
-  });
+  }
+  function holdEnd() {
+    clearTimeout(holdTimer);
+    var now = Date.now();
+    logoTaps = logoTaps.filter(function (t) { return now - t < 800; });
+    logoTaps.push(now);
+    if (logoTaps.length >= 3) { logoTaps = []; openPanel(now); }
+  }
+  logo.addEventListener('touchstart', function (e) { var t = e.touches[0]; holdStart(t.clientX, t.clientY); }, { passive: true });
+  logo.addEventListener('touchmove', function (e) {
+    var t = e.touches[0];
+    if (Math.abs(t.clientX - holdX) > 10 || Math.abs(t.clientY - holdY) > 10) clearTimeout(holdTimer);
+  }, { passive: true });
+  logo.addEventListener('touchend', function (e) { e.preventDefault(); holdEnd(); }); // no emulated mouse events after it
+  logo.addEventListener('mousedown', function (e) { holdStart(e.clientX, e.clientY); });
+  logo.addEventListener('mouseup', holdEnd);
+  logo.addEventListener('mouseleave', function () { clearTimeout(holdTimer); });
   logo.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
   function openPanel(at) {
@@ -430,8 +454,15 @@ html.full .scr { position: static; overflow: visible; }
     else if (act === 'save') { saveRow(); resetView(); renderPanel(); }
     else if (act === 'discard') { resetView(); startTask(); closePanel(); }
     else if (act === 'start') { resetView(); startTask(); closePanel(); }
-    else if (act === 'switch') { S.cond = S.cond === 'A' ? 'B' : 'A'; persist(); resetView(); renderPanel(); }
-    else if (act === 'newp') { S.cond = null; S.running = false; persist(); resetView(); closePanel(); }
+    else if (act === 'switch') {
+      S.cond = S.cond === 'A' ? 'B' : 'A';
+      history.replaceState(null, '', '?c=' + S.cond.toLowerCase());
+      persist(); render(); renderPanel();
+    } else if (act === 'newp') {
+      S.cond = null; S.running = false;
+      history.replaceState(null, '', location.pathname);
+      persist(); render(); closePanel();
+    }
     else if (act === 'copy') {
       var text = csv();
       var done = function () { b.textContent = 'Copied'; };
@@ -457,8 +488,7 @@ html.full .scr { position: static; overflow: visible; }
 
   // ---- Start: ?c=a / ?c=b open a condition directly; ?open=<topic> and ?full=1 are for screenshots ----
   var q = new URLSearchParams(location.search);
-  var qc = (q.get('c') || '').toUpperCase();
-  if (qc === 'A' || qc === 'B') { S.cond = qc; persist(); }
+  S.cond = condFromUrl();
   if (q.get('full')) document.documentElement.classList.add('full');
   render();
   if (S.cond === 'B' && q.get('open')) openDetail(q.get('open'), false);

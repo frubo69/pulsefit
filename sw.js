@@ -1,5 +1,5 @@
 // Offline copy: after the first visit the prototype opens without internet.
-var V = 'pulsefit-v1';
+var V = 'pulsefit-v2';
 var FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
