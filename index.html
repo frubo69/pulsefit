@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PulseFit</title>
+<meta name="theme-color" content="#17402f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PulseFit">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<style>
+:root {
+  --hdr: #17402f;
+  --acc: #116f52;
+  --ink: #14231d;
+  --mute: #5b6a63;
+  --line: #dfe7e3;
+  --card: #eef3f0;
+  --press: #dce7e1;
+  --bg: #ffffff;
+  --page: #e6ece9;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+#app {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+/* laptop / tablet: the same phone-sized screen in a frame */
+@media (min-width: 600px) and (min-height: 640px) {
+  #app {
+    inset: auto; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 390px; height: min(844px, calc(100vh - 48px));
+    border-radius: 44px;
+    box-shadow: 0 0 0 11px #10261d, 0 30px 70px rgba(0, 0, 0, .28);
+  }
+  .hdr { padding-top: 30px !important; }
+}
+
+.hdr {
+  flex: none;
+  background: var(--hdr); color: #fff;
+  padding: calc(env(safe-area-inset-top) + 14px) 20px 14px;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.logo { font-size: 25px; font-weight: 700; letter-spacing: -.4px; cursor: default; }
+
+.body { flex: 1; position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.scr {
+  position: absolute; inset: 0;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: 22px 18px calc(32px + env(safe-area-inset-bottom));
+}
+h1 { font-size: 25px; line-height: 1.2; font-weight: 700; letter-spacing: -.4px; margin: 0 0 4px; }
+.sub { font-size: 15px; color: var(--mute); margin: 0 0 18px; }
+.ico { flex: none; width: 30px; height: 30px; color: var(--ink); }
+.ico svg { width: 100%; height: 100%; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.h2 { display: block; font-size: 18px; font-weight: 650; margin: 0 0 3px; }
+.intro { display: block; font-size: 15px; line-height: 1.35; color: var(--mute); margin: 0; }
+.txt { font-size: 16px; line-height: 1.45; color: var(--ink); margin: 0; }
+
+/* facts: one component, identical in A and B */
+.facts { background: var(--card); border-radius: 12px; padding: 0 14px; margin-top: 12px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 16px; line-height: 1.3; }
+.row:first-child { border-top: 0; }
+.row .k { color: var(--mute); }
+.row .v { font-weight: 600; text-align: right; }
+
+/* A: one long page */
+.sec { padding: 18px 0; border-top: 1px solid var(--line); }
+.sh { display: flex; gap: 14px; }
+.sec .main { flex: 1; min-width: 0; padding-top: 3px; }
+
+/* B: dashboard and detail screens */
+.card {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; margin: 0 0 12px; padding: 16px;
+  background: var(--card); border: 0; border-radius: 14px;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.card:active { background: var(--press); }
+.card .ct { flex: 1; min-width: 0; }
+.chev { width: 20px; height: 20px; color: var(--mute); }
+.back {
+  display: flex; align-items: center; gap: 10px;
+  margin: -6px 0 6px -8px; padding: 6px 8px;
+  background: none; border: 0; border-radius: 10px;
+  font: inherit; color: inherit; cursor: pointer;
+}
+.back:active { background: var(--card); }
+.back .ico { width: 24px; height: 24px; }
+.back span { font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+.detail .intro { margin-top: 4px; }
+.slide { animation: slide .2s ease-out; }
+.fade { animation: fade .15s ease-out; }
+@keyframes slide { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: .3; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .slide, .fade { animation: none; } }
+
+.foot { font-size: 13px; line-height: 1.4; color: var(--mute); text-align: center; margin: 26px 0 0; }
+
+/* researcher: setup screen and panel */
+.rs-k { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--acc); margin: 0 0 4px; }
+.fld { display: block; margin: 18px 0 16px; }
+.fld span { display: block; font-size: 14px; color: var(--mute); margin-bottom: 6px; }
+.fld input {
+  width: 100%; height: 48px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: #fff;
+  font: inherit; font-size: 18px; font-weight: 600; color: var(--ink);
+  -webkit-user-select: text; user-select: text;
+}
+.rb {
+  display: block; width: 100%; min-height: 48px; margin: 0 0 10px; padding: 12px 16px;
+  border: 1px solid var(--line); border-radius: 12px; background: #fff;
+  font: inherit; font-size: 16px; font-weight: 600; color: var(--ink); cursor: pointer;
+}
+.rb:active { background: var(--card); }
+.rb.pri { background: var(--acc); border-color: var(--acc); color: #fff; }
+.rb.pri:active { background: var(--hdr); }
+.rb.sm { min-height: 40px; padding: 8px 10px; font-size: 14px; margin: 0; }
+.rb.warn { color: #b3261e; }
+.hint { font-size: 13px; color: var(--mute); margin: 8px 0 0; }
+
+.rp { position: absolute; inset: 0; z-index: 50; background: rgba(8, 20, 14, .55); display: flex; align-items: flex-end; }
+.rp[hidden] { display: none; }
+.sheet {
+  width: 100%; max-height: 92%; overflow-y: auto;
+  background: #fff; border-radius: 22px 22px 0 0;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+}
+.sheet h3 { font-size: 18px; margin: 0 0 14px; }
+.st { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
+.st div { background: var(--card); border-radius: 12px; padding: 10px; text-align: center; }
+.st b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.st span { font-size: 12px; color: var(--mute); }
+.log { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 12px; }
+.lh { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+.lh span { color: var(--mute); }
+.log table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
+.log th { text-align: left; font-weight: 600; color: var(--mute); padding: 4px 0; }
+.log td { padding: 5px 0; border-top: 1px solid var(--line); }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+/* used only to capture backup screenshots of the whole page */
+html.full #app { position: static; transform: none; width: auto; height: auto; border-radius: 0; box-shadow: none; }
+html.full .body { flex: none; }
+html.full .scr { position: static; overflow: visible; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="hdr"><span class="logo" id="logo">PulseFit</span></header>
+  <main class="body" id="body"></main>
+  <div class="rp" id="rp" hidden></div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  // ---- Content: one source for both conditions, so facts and wording cannot drift ----
+  var TOPICS = [
+    { id: 'hours', icon: 'clock', title: 'Opening hours', intro: 'When the gym is open.',
+      facts: [['Monday – Friday', '06:00 – 23:00'], ['Saturday', '08:00 – 21:00'], ['Sunday', '09:00 – 20:00']] },
+    { id: 'membership', icon: 'card', title: 'Membership', intro: 'Prices and discounts.',
+      facts: [['Monthly membership', 'AED 180'], ['Student discount', '10% (valid student ID)'], ['Joining fee', 'None']] },
+    { id: 'facilities', icon: 'shower', title: 'Facilities', intro: 'What is available at the gym.',
+      facts: [['Showers', 'Available'], ['Lockers', 'Available'], ['Parking', 'No free parking']] },
+    { id: 'classes', icon: 'people', title: 'Classes', intro: 'Weekly class schedule.',
+      facts: [['Beginner yoga', 'Tuesday, 18:30'], ['Strength basics', 'Thursday, 17:00']] }
+  ];
+  var ABOUT = 'PulseFit is a modern gym with quality equipment, supportive trainers and a friendly community for all fitness levels.';
+  var CONTACT = 'Get in touch with us at reception or by email: hello@pulsefit.example';
+  var FOOT = 'PulseFit is a fictional gym created for a university usability study.';
+
+  var ICONS = {
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+    shower: '<path d="M12 3v3"/><path d="M5.5 13a6.5 6.5 0 0 1 13 0z"/><path d="M8 17v.01M12 17v.01M16 17v.01M10 20.5v.01M14 20.5v.01"/>',
+    people: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.1a5 5 0 0 1 5 5"/>',
+    dumbbell: '<path d="M6.5 7v10M3.5 9.5v5M17.5 7v10M20.5 9.5v5M6.5 12h11"/>',
+    phone: '<path d="M5 4h3.5l2 5-2.5 1.5a11 11 0 0 0 5.5 5.5l1.5-2.5 5 2V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>',
+    back: '<path d="M19 12H5M11 6l-6 6 6 6"/>'
+  };
+
+  function ico(name, cls) {
+    return '<span class="ico' + (cls ? ' ' + cls : '') + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg></span>';
+  }
+  function facts(t) {
+    return '<div class="facts">' + t.facts.map(function (f) {
+      return '<div class="row"><span class="k">' + f[0] + '</span><span class="v">' + f[1] + '</span></div>';
+    }).join('') + '</div>';
+  }
+  // facts go below the heading at full width, the same width as on a B detail screen
+  function sec(icon, title, inner, below) {
+    return '<section class="sec"><div class="sh">' + ico(icon) + '<div class="main"><h2 class="h2">' + title + '</h2>' + inner + '</div></div>' + (below || '') + '</section>';
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; });
+  }
+
+  // ---- Views ----
+  function viewA() {
+    return '<div class="scr" id="scr">' +
+      '<h1>Welcome to PulseFit</h1><p class="sub">Your local gym information hub</p>' +
+      sec('dumbbell', 'About our gym', '<p class="txt">' + ABOUT + '</p>') +
+      TOPICS.map(function (t) { return sec(t.icon, t.title, '<p class="intro">' + t.intro + '</p>', facts(t)); }).join('') +
+      sec('phone', 'Contact', '<p class="txt">' + CONTACT + '</p>') +
+      '<p class="foot">' + FOOT + '</p></div>';
+  }
+  function viewDash(anim) {
+    return '<div class="scr' + (anim ? ' fade' : '') + '" id="scr">' +
+      '<h1>What would you like to find?</h1><p class="sub">Tap a card to view details</p>' +
+      TOPICS.map(function (t) {
+        return '<button class="card" data-open="' + t.id + '">' + ico(t.icon) +
+          '<span class="ct"><span class="h2">' + t.title + '</span><span class="intro">' + t.intro + '</span></span>' +
+          ico('chev', 'chev') + '</button>';
+      }).join('') +
+      '<p class="foot">' + FOOT + '</p></div>';
+  }
+  function viewDetail(t, anim) {
+    return '<div class="scr detail' + (anim ? ' slide' : '') + '" id="scr">' +
+      '<button class="back" data-back aria-label="Back to all topics">' + ico('back') + '<span>' + t.title + '</span></button>' +
+      '<p class="intro">' + t.intro + '</p>' + facts(t) +
+      '<p class="foot">' + FOOT + '</p></div>';
+  }
+  function viewSetup() {
+    return '<div class="scr" id="scr">' +
+      '<p class="rs-k">Researcher</p><h1>Study setup</h1>' +
+      '<label class="fld"><span>Participant ID</span><input id="pid" value="' + esc(nextPid()) + '" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>' +
+      '<button class="rb pri" data-start="A">Start condition A · scrolling page</button>' +
+      '<button class="rb pri" data-start="B">Start condition B · task cards</button>' +
+      '<button class="rb" data-log>Log · ' + LOG.length + ' tasks</button>' +
+      '<p class="hint">Hold the PulseFit logo for 1 second to open the researcher panel.</p></div>';
+  }
+
+  // ---- State ----
+  var body = document.getElementById('body');
+  var rp = document.getElementById('rp');
+  var logo = document.getElementById('logo');
+
+  function load(key, def) {
+    try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? def : v; } catch (e) { return def; }
+  }
+  function store(key, v) {
+    try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {}
+  }
+
+  var saved = load('pf_state', {});
+  var S = { pid: saved.pid || '', cond: saved.cond || null, running: false, t0: 0, paused: 0, taps: 0, scrolls: 0, frozen: 0 };
+  var LOG = load('pf_log', []);
+  var P = { open: false, at: 0 };
+  var openTopic = null;
+
+  function persist() { store('pf_state', { pid: S.pid, cond: S.cond }); }
+
+  function nextPid() {
+    var n = 0;
+    LOG.concat([{ pid: S.pid }]).forEach(function (r) {
+      var m = /^P(\d+)$/i.exec(r.pid || '');
+      if (m) n = Math.max(n, +m[1]);
+    });
+    return 'P' + String(n + 1).padStart(2, '0');
+  }
+  function taskNo() {
+    return LOG.filter(function (r) { return r.pid === S.pid && r.cond === S.cond; }).length + 1;
+  }
+
+  // ---- Navigation ----
+  function render() {
+    openTopic = null;
+    body.innerHTML = !S.cond ? viewSetup() : S.cond === 'A' ? viewA() : viewDash(false);
+  }
+  function resetView() {
+    if (history.state && history.state.d) history.replaceState(null, '');
+    render();
+  }
+  function openDetail(id, push) {
+    var t = TOPICS.filter(function (x) { return x.id === id; })[0];
+    if (!t) return;
+    openTopic = id;
+    body.innerHTML = viewDetail(t, push);
+    if (push) history.pushState({ d: id }, '');
+  }
+  function showDash() {
+    openTopic = null;
+    body.innerHTML = viewDash(true);
+  }
+
+  body.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-open],[data-back],[data-start],[data-log]');
+    if (!el) return;
+    if (el.hasAttribute('data-open')) openDetail(el.getAttribute('data-open'), true);
+    else if (el.hasAttribute('data-back')) {
+      if (history.state && history.state.d) history.back(); else showDash();
+    } else if (el.hasAttribute('data-start')) {
+      var inp = document.getElementById('pid');
+      S.pid = (inp.value || '').trim().toUpperCase() || nextPid();
+      S.cond = el.getAttribute('data-start');
+      persist(); render(); startTask();
+    } else if (el.hasAttribute('data-log')) openPanel(Date.now());
+  });
+
+  window.addEventListener('popstate', function (e) {
+    if (S.cond !== 'B') return;
+    var d = e.state && e.state.d;
+    if (d) openDetail(d, false);
+    else if (openTopic) showDash();
+  });
+
+  // ---- Interaction counter (invisible to the participant) ----
+  function counting() { return S.running && !P.open && !!S.cond; }
+  var tx = 0, ty = 0, moved = false, lastTouch = 0, lastWheel = 0;
+  body.addEventListener('touchstart', function (e) {
+    var t = e.touches[0]; tx = t.clientX; ty = t.clientY; moved = false;
+  }, { passive: true });
+  body.addEventListener('touchmove', function (e) {
+    var t = e.touches[0];
+    if (Math.abs(t.clientX - tx) > 10 || Math.abs(t.clientY - ty) > 10) moved = true;
+  }, { passive: true });
+  body.addEventListener('touchend', function (e) {
+    if (e.touches.length) return;
+    lastTouch = Date.now();
+    if (!counting()) return;
+    if (moved) S.scrolls++; else S.taps++;
+  }, { passive: true });
+  body.addEventListener('click', function () {
+    if (Date.now() - lastTouch < 800 || !counting()) return; // mouse clicks on a laptop
+    S.taps++;
+  }, true);
+  body.addEventListener('wheel', function () {
+    var now = Date.now();
+    if (counting() && now - lastWheel > 400) S.scrolls++;
+    lastWheel = now;
+  }, { passive: true });
+
+  function startTask() {
+    S.running = true; S.t0 = Date.now(); S.paused = 0; S.taps = 0; S.scrolls = 0;
+  }
+  function elapsed(at) { return Math.max(0, (at - S.t0 - S.paused) / 1000); }
+  function fmtT(sec) {
+    var s = Math.floor(sec);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  // ---- Researcher panel: hold the logo for ~1 s ----
+  var holdTimer = null;
+  logo.addEventListener('pointerdown', function () {
+    var at = Date.now();
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(function () { holdTimer = null; openPanel(at); }, 900);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+    logo.addEventListener(ev, function () { clearTimeout(holdTimer); });
+  });
+  logo.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  function openPanel(at) {
+    if (P.open) return;
+    P.open = true; P.at = at;
+    if (S.running) S.frozen = elapsed(at);
+    renderPanel();
+    rp.hidden = false;
+  }
+  function closePanel() { P.open = false; rp.hidden = true; }
+
+  function renderPanel() {
+    var n = taskNo();
+    var head = !S.cond ? 'Setup' :
+      esc(S.pid) + ' · Condition ' + S.cond + ' · ' + (S.running ? 'task ' + n + ' running' : 'next: task ' + n);
+    var stats = S.running ?
+      '<div class="st"><div><b>' + fmtT(S.frozen) + '</b><span>time</span></div><div><b>' + S.taps +
+      '</b><span>taps</span></div><div><b>' + S.scrolls + '</b><span>scroll gestures</span></div></div>' : '';
+    var btns;
+    if (!S.cond) btns = '<button class="rb" data-act="close">Close</button>';
+    else if (S.running) btns =
+      '<button class="rb pri" data-act="savenext">Save · start task ' + (n + 1) + '</button>' +
+      '<button class="rb" data-act="save">Save · stop</button>' +
+      '<button class="rb" data-act="discard">Discard · restart task ' + n + '</button>' +
+      '<button class="rb" data-act="resume">Back to participant</button>';
+    else btns =
+      '<button class="rb pri" data-act="start">Start task ' + n + ' · condition ' + S.cond + '</button>' +
+      '<button class="rb" data-act="switch">Switch to condition ' + (S.cond === 'A' ? 'B' : 'A') + '</button>' +
+      '<button class="rb" data-act="newp">New participant</button>' +
+      '<button class="rb" data-act="close">Close</button>';
+    var mine = LOG.filter(function (r) { return r.pid === S.pid; });
+    var table = mine.length ? '<table><tr><th>Cond</th><th>Task</th><th>Sec</th><th>Taps</th><th>Scrolls</th></tr>' +
+      mine.map(function (r) {
+        return '<tr><td>' + r.cond + '</td><td>' + r.task + '</td><td>' + r.sec.toFixed(1) + '</td><td>' + r.taps + '</td><td>' + r.scrolls + '</td></tr>';
+      }).join('') + '</table>' : '';
+    rp.innerHTML = '<div class="sheet"><p class="rs-k">Researcher</p><h3>' + head + '</h3>' + stats +
+      btns +
+      '<div class="log"><div class="lh"><b>Log' + (mine.length ? ' · ' + esc(S.pid) : '') + '</b><span>' + LOG.length + ' tasks saved</span></div>' + table +
+      '<div class="three"><button class="rb sm" data-act="copy">Copy CSV</button><button class="rb sm" data-act="dl">Download CSV</button>' +
+      '<button class="rb sm warn" data-act="clear">Clear log</button></div></div></div>';
+  }
+
+  function saveRow() {
+    LOG.push({ pid: S.pid, cond: S.cond, task: taskNo(), sec: Math.round(S.frozen * 10) / 10, taps: S.taps, scrolls: S.scrolls, at: new Date().toISOString() });
+    store('pf_log', LOG);
+    S.running = false;
+  }
+  function csv() {
+    return 'participant,condition,task,time_s,taps,scroll_gestures,saved_at\n' + LOG.map(function (r) {
+      return [r.pid, r.cond, r.task, r.sec, r.taps, r.scrolls, r.at].join(',');
+    }).join('\n') + '\n';
+  }
+
+  rp.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'close') closePanel();
+    else if (act === 'resume') { S.paused += Date.now() - P.at; closePanel(); }
+    else if (act === 'savenext') { saveRow(); resetView(); startTask(); closePanel(); }
+    else if (act === 'save') { saveRow(); resetView(); renderPanel(); }
+    else if (act === 'discard') { resetView(); startTask(); closePanel(); }
+    else if (act === 'start') { resetView(); startTask(); closePanel(); }
+    else if (act === 'switch') { S.cond = S.cond === 'A' ? 'B' : 'A'; persist(); resetView(); renderPanel(); }
+    else if (act === 'newp') { S.cond = null; S.running = false; persist(); resetView(); closePanel(); }
+    else if (act === 'copy') {
+      var text = csv();
+      var done = function () { b.textContent = 'Copied'; };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+      else fallback();
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (err) {}
+        ta.remove();
+      }
+    } else if (act === 'dl') {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv()], { type: 'text/csv' }));
+      a.download = 'pulsefit-log-' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+    } else if (act === 'clear') {
+      if (LOG.length && confirm('Delete all ' + LOG.length + ' saved tasks from this device?')) {
+        LOG = []; store('pf_log', LOG); renderPanel();
+      }
+    }
+  });
+
+  // ---- Start: ?c=a / ?c=b open a condition directly; ?open=<topic> and ?full=1 are for screenshots ----
+  var q = new URLSearchParams(location.search);
+  var qc = (q.get('c') || '').toUpperCase();
+  if (qc === 'A' || qc === 'B') { S.cond = qc; persist(); }
+  if (q.get('full')) document.documentElement.classList.add('full');
+  render();
+  if (S.cond === 'B' && q.get('open')) openDetail(q.get('open'), false);
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
