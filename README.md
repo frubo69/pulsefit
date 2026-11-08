@@ -13,9 +13,11 @@ Both conditions take their facts and wording from one list in `index.html`, so t
 - `./?c=a` condition A directly
 - `./?c=b` condition B directly
 
+The browser Back button goes from a condition back to the setup screen (in B: detail → dashboard → setup). Reloading keeps the current screen.
+
 ## At the stand
 
-- Hold the **PulseFit** logo for about 1 second to open the researcher panel: task time, taps, scroll gestures, save / next task, switch condition, new participant, export CSV.
-- Reset for a new participant: panel → **New participant** (or reload the page).
+- Hold the **PulseFit** logo for about 1 second, or tap it three times, to open the researcher panel: task time, taps, scroll gestures, save / next task, switch condition, new participant, export CSV.
+- Reset for a new participant: panel → **New participant**.
 - After the first visit the prototype works without internet. On a phone, *Add to Home Screen* opens it full screen with no address bar.
 - The log stays on the device only (participant IDs, no names). Export it as CSV at the end of each session.
