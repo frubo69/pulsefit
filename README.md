@@ -12,6 +12,7 @@ Both conditions take their facts and wording from one list in `index.html`, so t
 - `./` researcher setup (participant ID, start A or B)
 - `./?c=a` condition A directly
 - `./?c=b` condition B directly
+- `./a/` and `./b/` short links for the QR codes: they open the Figma prototypes of A and B (participants use these)
 
 The browser Back button goes from a condition back to the setup screen (in B: detail → dashboard → setup). Reloading keeps the current screen.
 
